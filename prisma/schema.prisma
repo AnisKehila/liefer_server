@@ -1,0 +1,42 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+}
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  email         String  @unique
+  password      String
+  role          Role    @default(USER)
+  orders        Order[]
+  created_at    DateTime @default(now())
+  edited_at     DateTime @updatedAt
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        Int
+  status        OrderStatus
+  items         String
+  origin        String
+  destination   String
+  created_at    DateTime @default(now())
+  edited_at     DateTime @updatedAt
+}
