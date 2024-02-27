@@ -1,15 +1,28 @@
-import express, { Express, Request, Response } from "express";
-import dotenv from "dotenv";
+import express, { NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { PORT, SECRET_KEY } from "./utils/config";
+import userRouter from "./routes/user";
+import middleware from "./utils/middleware";
+import "express-async-errors";
 
-dotenv.config();
+const app = express();
 
-const app: Express = express();
-const port = process.env.PORT || 3000;
+app.use(express.json()); // Parse incoming JSON requests
+app.use("/user", userRouter);
 
-app.get("/", (req: Request, res: Response) => {
-  res.json({ hello: "hello world!" });
+app.get("/protected", async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  const decoded = jwt.verify(token, SECRET_KEY);
+  res.status(200).json({ message: "Authenticated", user: decoded });
 });
 
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+app.use(middleware.unknownEndpoint);
+app.use(middleware.errorHandler);
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });

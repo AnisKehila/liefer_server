@@ -22,9 +22,12 @@ model User {
   id            Int      @id @default(autoincrement())
   name          String   @unique
   email         String  @unique
+  phone         String  @unique
   password      String
   role          Role    @default(USER)
   orders        Order[]
+  isEmailConfirmed Boolean @default(false)
+  isPhoneConfirmed Boolean @default(false)
   created_at    DateTime @default(now())
   edited_at     DateTime @updatedAt
 }
