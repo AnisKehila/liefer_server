@@ -8,6 +8,6 @@ export const signUpSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email({ message: "invalide email" }),
+  phone: z.string().min(10).max(10),
   password: z.string(),
 });

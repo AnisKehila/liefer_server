@@ -8,6 +8,7 @@ import { loginSchema, signUpSchema } from "../schema/userSchema";
 const userRouter = Router();
 
 userRouter.post("/signup", async (req, res) => {
+  console.log(req.body);
   const data = signUpSchema.safeParse(req.body);
   if (!data.success) {
     return res.status(400).json({
@@ -30,41 +31,43 @@ userRouter.post("/signup", async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-    },
-  });
-
-  res.status(201).json({ message: "User created successfully", user });
+  try {
+    const user = await db.user.create({
+      data: {
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+      },
+    });
+    res.status(201).json({ message: "User created successfully", user });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong!", data: err });
+  }
 });
 
 userRouter.post("/login", async (req, res) => {
   const data = loginSchema.safeParse(req.body);
-
   if (!data.success) {
     return res.status(400).json({
       message: "missing or invalid parameter(s)",
       error: data.error.issues,
     });
   }
-  const { email, password } = data.data;
+  const { phone, password } = data.data;
   const user = await db.user.findUnique({
-    where: { email },
+    where: { phone },
   });
 
   if (!(user !== null && (await bcrypt.compare(password, user.password)))) {
-    return res.status(401).json({ error: "invalid username or password" });
+    return res.status(401).json({ message: "invalid credintials" });
   }
   // Create JWT token with user ID and role
   const token = jwt.sign({ id: user.id, role: user.role }, SECRET_KEY, {
     expiresIn: "1h",
   });
 
-  res.status(200).json({ message: "Login successful", token });
+  res.status(200).json({ token });
 });
 
 export default userRouter;
