@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import db from "../db";
 import { ACCESS_SECRET_KEY, REFRESH_SECRET_KEY } from "../utils/config";
 import { loginSchema, signUpSchema } from "../schema/userSchema";
-import { AsyncLocalStorage } from "async_hooks";
+import { nanoid } from "nanoid";
 
 const userRouter = Router();
 
@@ -68,29 +68,35 @@ userRouter.post("/login", async (req, res) => {
     { id: user.id, role: user.role },
     ACCESS_SECRET_KEY,
     {
-      expiresIn: "15s",
+      expiresIn: "7m",
     }
   );
+  const refreshTokenId = nanoid(10);
   const refreshToken = jwt.sign(
-    { id: user.id, role: user.role },
-    REFRESH_SECRET_KEY,
-    {
-      expiresIn: "30d",
-    }
+    { id: refreshTokenId, userId: user.id },
+    REFRESH_SECRET_KEY
   );
   try {
     const hashedToken = await bcrypt.hash(refreshToken, 10);
     await db.token.create({
       data: {
+        id: refreshTokenId,
         token: hashedToken,
-        userId: user.id,
       },
     });
   } catch (err) {
     return res.status(500).json({ message: "Internal server error", err });
   }
+  res.cookie("jwt", refreshToken, {
+    httpOnly: true, //accessible only by web server
+    secure: true, //https
+    sameSite: "none", //cross-site cookie
+  });
+  res.status(200).json({ accessToken });
+});
 
-  res.status(200).json({ accessToken, refreshToken });
+userRouter.post("/refresh", async (req, res) => {
+  const refreshToken = req.header;
 });
 
 export default userRouter;

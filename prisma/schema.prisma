@@ -32,13 +32,10 @@ model User {
   isPhoneConfirmed Boolean  @default(false)
   created_at       DateTime @default(now())
   edited_at        DateTime @updatedAt
-  Token            Token[]
 }
 
 model Token {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  id     String  @id
   token String
 }
 
