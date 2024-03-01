@@ -2,8 +2,9 @@ import { Router, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import db from "../db";
-import { SECRET_KEY } from "../utils/config";
+import { ACCESS_SECRET_KEY, REFRESH_SECRET_KEY } from "../utils/config";
 import { loginSchema, signUpSchema } from "../schema/userSchema";
+import { AsyncLocalStorage } from "async_hooks";
 
 const userRouter = Router();
 
@@ -63,11 +64,33 @@ userRouter.post("/login", async (req, res) => {
     return res.status(401).json({ message: "invalid credintials" });
   }
   // Create JWT token with user ID and role
-  const token = jwt.sign({ id: user.id, role: user.role }, SECRET_KEY, {
-    expiresIn: "1h",
-  });
+  const accessToken = jwt.sign(
+    { id: user.id, role: user.role },
+    ACCESS_SECRET_KEY,
+    {
+      expiresIn: "15s",
+    }
+  );
+  const refreshToken = jwt.sign(
+    { id: user.id, role: user.role },
+    REFRESH_SECRET_KEY,
+    {
+      expiresIn: "30d",
+    }
+  );
+  try {
+    const hashedToken = await bcrypt.hash(refreshToken, 10);
+    await db.token.create({
+      data: {
+        token: hashedToken,
+        userId: user.id,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error", err });
+  }
 
-  res.status(200).json({ token });
+  res.status(200).json({ accessToken, refreshToken });
 });
 
 export default userRouter;
