@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { ACCESS_SECRET_KEY } from "./config";
 import jwt from "jsonwebtoken";
 
-const auth = async (req: Request, res: Response, next: NextFunction) => {
+export const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 

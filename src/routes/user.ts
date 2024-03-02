@@ -5,11 +5,12 @@ import db from "../db";
 import { ACCESS_SECRET_KEY, REFRESH_SECRET_KEY } from "../utils/config";
 import { loginSchema, signUpSchema } from "../schema/userSchema";
 import { nanoid } from "nanoid";
+import { auth } from "../utils/helpers";
+import { refreshSchema } from "../schema/jwtSchema";
 
 const userRouter = Router();
 
 userRouter.post("/signup", async (req, res) => {
-  console.log(req.body);
   const data = signUpSchema.safeParse(req.body);
   if (!data.success) {
     return res.status(400).json({
@@ -56,7 +57,7 @@ userRouter.post("/login", async (req, res) => {
     });
   }
   const { phone, password } = data.data;
-  const user = await db.user.findUnique({
+  const user = await db.user.findFirst({
     where: { phone },
   });
 
@@ -92,11 +93,60 @@ userRouter.post("/login", async (req, res) => {
     secure: true, //https
     sameSite: "none", //cross-site cookie
   });
-  res.status(200).json({ accessToken });
+  res.status(200).json({
+    accessToken,
+    user: {
+      user: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isEmailConfirmed: user.isEmailConfirmed,
+      isPhoneConfirmed: user.isPhoneConfirmed,
+    },
+  });
 });
 
-userRouter.post("/refresh", async (req, res) => {
-  const refreshToken = req.header;
+userRouter.get("/refresh", async (req, res) => {
+  const refreshToken = req.cookies;
+  if (!refreshToken) {
+    return res.status(401).json({ message: "no token" });
+  }
+  const decoded = refreshSchema.safeParse(jwt.decode(refreshToken.jwt));
+  if (!decoded.success) {
+    return res
+      .status(401)
+      .json({ message: "Invalide token!", data: decoded.error });
+  }
+  const { id, userId } = decoded.data;
+  const findToken = await db.token.findFirst({
+    where: {
+      id: id,
+    },
+  });
+  if (!findToken) {
+    return res.status(401).json({ message: "token not found" });
+  }
+  const user = await db.user.findFirst({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+  if (!user) {
+    return res.status(401).json({ message: "user account not found!" });
+  }
+  const accessToken = jwt.sign(
+    { id: user.id, role: user.role },
+    ACCESS_SECRET_KEY,
+    {
+      expiresIn: "7m",
+    }
+  );
+  return res.status(200).json({ token: accessToken });
 });
 
 export default userRouter;
