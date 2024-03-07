@@ -86,6 +86,7 @@ userRouter.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: "Internal server error", err });
   }
   res.cookie("jwt", refreshToken, {
@@ -147,6 +148,28 @@ userRouter.get("/refresh", async (req, res) => {
     }
   );
   return res.status(200).json({ token: accessToken });
+});
+
+userRouter.get("/me", auth, async (req, res) => {
+  const { id } = req.body.decoded;
+  console.log(req.body);
+  const user = await db.user.findFirst({
+    where: { id },
+  });
+
+  if (!user) {
+    return res.status(401).json({ message: "User not found!" });
+  }
+
+  res.status(200).json({
+    user: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    isEmailConfirmed: user.isEmailConfirmed,
+    isPhoneConfirmed: user.isPhoneConfirmed,
+  });
 });
 
 export default userRouter;
