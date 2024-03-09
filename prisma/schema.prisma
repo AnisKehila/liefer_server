@@ -14,11 +14,10 @@ enum Role {
 
 enum PackageStatus {
   NOT_RECIEVED
-  PENDING
   CONFIRMED
   ON_ROAD
   DELIVERED
-  CANCELLED
+  RETURNED
 }
 
 enum DeliveryType {
@@ -38,7 +37,7 @@ model User {
   isEmailConfirmed    Boolean   @default(false)
   isPhoneConfirmed    Boolean   @default(false)
   money_in_account    Int?      @default(0)
-  money_in_withdrawed Int?      @default(0)
+  money_withdrawed    Int?      @default(0)
   money_total         Int?      @default(0)
   created_at          DateTime  @default(now())
   edited_at           DateTime  @updatedAt
