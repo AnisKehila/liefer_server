@@ -86,7 +86,6 @@ userRouter.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ message: "Internal server error", err });
   }
   res.cookie("jwt", refreshToken, {
@@ -152,7 +151,6 @@ userRouter.get("/refresh", async (req, res) => {
 
 userRouter.get("/me", auth, async (req, res) => {
   const { id } = req.body.decoded;
-  console.log(req.body);
   const user = await db.user.findFirst({
     where: { id },
   });
