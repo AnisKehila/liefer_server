@@ -170,4 +170,22 @@ userRouter.get("/me", auth, async (req, res) => {
   });
 });
 
+userRouter.get("/balance", auth, async (req, res) => {
+  const { id } = req.body.decoded;
+  const user = await db.user.findFirst({
+    where: { id },
+    select: {
+      money_in_account: true,
+      money_withdrawed: true,
+      money_total: true,
+    },
+  });
+
+  if (!user) {
+    return res.status(401).json({ message: "User not found!" });
+  }
+
+  res.status(200).json({ user });
+});
+
 export default userRouter;
