@@ -1,6 +1,6 @@
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      =env("DATABASE_URL")
 }
 
 generator client {
@@ -12,41 +12,64 @@ enum Role {
   ADMIN
 }
 
-enum OrderStatus {
+enum PackageStatus {
+  NOT_RECIEVED
   PENDING
   CONFIRMED
-  IN_PROGRESS
+  ON_ROAD
   DELIVERED
   CANCELLED
 }
 
+enum DeliveryType {
+  OTO // office to office
+  OTC //office to costumer
+  CTC //costumer to costumer (the company will go to recieve the package)
+}
+
 model User {
-  id               Int      @id @default(autoincrement())
-  name             String
-  email            String   @unique
-  phone            String   @unique
-  password         String
-  role             Role     @default(USER)
-  orders           Order[]
-  isEmailConfirmed Boolean  @default(false)
-  isPhoneConfirmed Boolean  @default(false)
-  created_at       DateTime @default(now())
-  edited_at        DateTime @updatedAt
+  id                  Int       @id @default(autoincrement())
+  name                String
+  email               String    @unique
+  phone               String    @unique
+  password            String
+  role                Role      @default(USER)
+  Packages            Package[]
+  isEmailConfirmed    Boolean   @default(false)
+  isPhoneConfirmed    Boolean   @default(false)
+  money_in_account    Int?      @default(0)
+  money_in_withdrawed Int?      @default(0)
+  money_total         Int?      @default(0)
+  created_at          DateTime  @default(now())
+  edited_at           DateTime  @updatedAt
 }
 
 model Token {
-  id     String  @id
+  id    String @id
   token String
 }
 
-model Order {
-  id          Int         @id @default(autoincrement())
-  user        User        @relation(fields: [userId], references: [id])
-  userId      Int
-  status      OrderStatus
-  items       String
-  origin      String
-  destination String
-  created_at  DateTime    @default(now())
-  edited_at   DateTime    @updatedAt
+model Package {
+  id               Int           @id @default(autoincrement())
+  user             User          @relation(fields: [userId], references: [id])
+  userId           Int
+  status           PackageStatus
+  type             DeliveryType
+  discription      String?
+  origin           String
+  destination      String
+  price            Int
+  service_price    Int
+  is_costumer_pays Boolean?      @default(true)
+  created_at       DateTime      @default(now())
+  edited_at        DateTime      @updatedAt
+}
+
+model Office {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  city      String
+  commune   String?
+  longitude Float?
+  latitude  Float?
 }
