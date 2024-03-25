@@ -1,6 +1,6 @@
 datasource db {
   provider = "mysql"
-  url      =env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -8,39 +8,27 @@ generator client {
 }
 
 enum Role {
-  USER
+  COSTUMER
+  DELIVERY
+  WORKER
   ADMIN
 }
 
-enum PackageStatus {
-  NOT_RECIEVED
+enum PackageStatusEnum {
+  PENDING
   CONFIRMED
+  RECIEVED
   ON_ROAD
+  IN_OFFICE
   DELIVERED
+  CANCELED
   RETURNED
 }
 
 enum DeliveryType {
   OTO // office to office
   OTC //office to costumer
-  CTC //costumer to costumer (the company will go to recieve the package)
-}
-
-model User {
-  id                  Int       @id @default(autoincrement())
-  name                String
-  email               String    @unique
-  phone               String    @unique
-  password            String
-  role                Role      @default(USER)
-  Packages            Package[]
-  isEmailConfirmed    Boolean   @default(false)
-  isPhoneConfirmed    Boolean   @default(false)
-  money_in_account    Int?      @default(0)
-  money_withdrawed    Int?      @default(0)
-  money_total         Int?      @default(0)
-  created_at          DateTime  @default(now())
-  edited_at           DateTime  @updatedAt
+  DTC //delivery to costumer (the delivery_man will go to recieve the package)
 }
 
 model Token {
@@ -48,27 +36,105 @@ model Token {
   token String
 }
 
+model User {
+  id               Int          @id @default(autoincrement())
+  display_name     String
+  email            String       @unique
+  phone            String       @unique
+  password         String
+  role             Role         @default(COSTUMER)
+  isEmailConfirmed Boolean      @default(false)
+  isPhoneConfirmed Boolean      @default(false)
+  isBlocked        Boolean      @default(false)
+  DeliveryMan      DeliveryMan?
+  Costumer         Costumer?
+  Imployee         Imployee?
+  created_at       DateTime     @default(now())
+  edited_at        DateTime     @updatedAt
+}
+
+model DeliveryMan {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int       @unique
+  national_id String
+  balance     Balance?
+  rating      Int
+  packages    Package[]
+}
+
+model Costumer {
+  id       Int       @id @default(autoincrement())
+  user     User      @relation(fields: [userId], references: [id])
+  userId   Int       @unique
+  packages Package[]
+  balance  Balance?
+}
+
+model Imployee {
+  id       Int    @id @default(autoincrement())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   Int    @unique
+  salary   Float
+  office   Office @relation(fields: [officeId], references: [id])
+  officeId Int    @unique
+}
+
 model Package {
-  id               Int           @id @default(autoincrement())
-  user             User          @relation(fields: [userId], references: [id])
-  userId           Int
-  status           PackageStatus
-  type             DeliveryType
+  id               Int            @id @default(autoincrement())
+  deliveryType     DeliveryType
   discription      String?
   origin           String
   destination      String
-  price            Int
+  price            Int?
   service_price    Int
-  is_costumer_pays Boolean?      @default(true)
-  created_at       DateTime      @default(now())
-  edited_at        DateTime      @updatedAt
+  is_costumer_pays Boolean?       @default(true)
+  costumerId       Int
+  deliveryManId    Int?
+  inventoryId      Int?
+  costumer         Costumer[]
+  deliveryMan      DeliveryMan?   @relation(fields: [deliveryManId], references: [id])
+  status           PackageStatus?
+  inventory        inventory?     @relation(fields: [inventoryId], references: [id])
+  created_at       DateTime       @default(now())
+  edited_at        DateTime       @updatedAt
+}
+
+model PackageStatus {
+  id          Int               @id @default(autoincrement())
+  package     Package           @relation(fields: [packageId], references: [id])
+  packageId   Int               @unique
+  name        PackageStatusEnum
+  description String?
 }
 
 model Office {
-  id        Int     @id @default(autoincrement())
-  name      String  @unique
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
   city      String
-  commune   String?
+  commune   String
   longitude Float?
   latitude  Float?
+  imployees Imployee[]
+  inventory inventory[]
+}
+
+model inventory {
+  id       Int       @id @default(autoincrement())
+  office   Office    @relation(fields: [officeId], references: [id])
+  officeId Int
+  packages Package[]
+}
+
+model Balance {
+  id            Int         @id @default(autoincrement())
+  total         Float       @default(0)
+  in_account    Float       @default(0)
+  withdrawed    Float       @default(0)
+  costumerId    Int         @unique
+  deliveryManId Int         @unique
+  costumer      Costumer    @relation(fields: [costumerId], references: [id])
+  deliveryMan   DeliveryMan @relation(fields: [deliveryManId], references: [id])
+  created_at    DateTime    @default(now())
+  edited_at     DateTime    @updatedAt
 }
