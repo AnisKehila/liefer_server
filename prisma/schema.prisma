@@ -8,7 +8,7 @@ generator client {
 }
 
 enum Role {
-  COSTUMER
+  CUSTOMER
   DELIVERY
   WORKER
   ADMIN
@@ -17,7 +17,7 @@ enum Role {
 enum PackageStatusEnum {
   PENDING
   CONFIRMED
-  RECIEVED
+  RECIEVED //company recieved the package
   ON_ROAD
   IN_OFFICE
   DELIVERED
@@ -27,8 +27,8 @@ enum PackageStatusEnum {
 
 enum DeliveryType {
   OTO // office to office
-  OTC //office to costumer
-  DTC //delivery to costumer (the delivery_man will go to recieve the package)
+  OTC //office to customer
+  DTC //delivery to customer (the delivery_man will go to recieve the package)
 }
 
 model Token {
@@ -42,13 +42,14 @@ model User {
   email            String       @unique
   phone            String       @unique
   password         String
-  role             Role         @default(COSTUMER)
+  role             Role         @default(CUSTOMER)
   isEmailConfirmed Boolean      @default(false)
   isPhoneConfirmed Boolean      @default(false)
   isBlocked        Boolean      @default(false)
   DeliveryMan      DeliveryMan?
-  Costumer         Costumer?
+  Customer         Customer?
   Imployee         Imployee?
+  notifications    Notification[]
   created_at       DateTime     @default(now())
   edited_at        DateTime     @updatedAt
 }
@@ -56,14 +57,14 @@ model User {
 model DeliveryMan {
   id          Int       @id @default(autoincrement())
   user        User      @relation(fields: [userId], references: [id])
-  userId      Int       @unique
+  userId      Int       @unique 
   national_id String
   balance     Balance?
   rating      Int
   packages    Package[]
 }
 
-model Costumer {
+model Customer {
   id       Int       @id @default(autoincrement())
   user     User      @relation(fields: [userId], references: [id])
   userId   Int       @unique
@@ -88,13 +89,17 @@ model Package {
   destination      String
   price            Int?
   service_price    Int
-  is_costumer_pays Boolean?       @default(true)
-  costumerId       Int
+  is_customer_pays Boolean?       @default(true)
+  weight           Float //in kilos
+  height           Float //in cm
+  width            Float //in cm
+  customerId       Int
   deliveryManId    Int?
   inventoryId      Int?
-  costumer         Costumer[]
+  customer         Customer[]
   deliveryMan      DeliveryMan?   @relation(fields: [deliveryManId], references: [id])
-  status           PackageStatus?
+  status           PackageStatus  @relation(fields: [statusId], references: [id])
+  statusId         Int           @unique
   inventory        inventory?     @relation(fields: [inventoryId], references: [id])
   created_at       DateTime       @default(now())
   edited_at        DateTime       @updatedAt
@@ -102,9 +107,8 @@ model Package {
 
 model PackageStatus {
   id          Int               @id @default(autoincrement())
-  package     Package           @relation(fields: [packageId], references: [id])
-  packageId   Int               @unique
-  name        PackageStatusEnum
+  package     Package?
+  name        PackageStatusEnum @default(PENDING)
   description String?
 }
 
@@ -131,10 +135,21 @@ model Balance {
   total         Float       @default(0)
   in_account    Float       @default(0)
   withdrawed    Float       @default(0)
-  costumerId    Int         @unique
+  customerId    Int         @unique
   deliveryManId Int         @unique
-  costumer      Costumer    @relation(fields: [costumerId], references: [id])
+  customer      Customer    @relation(fields: [customerId], references: [id])
   deliveryMan   DeliveryMan @relation(fields: [deliveryManId], references: [id])
   created_at    DateTime    @default(now())
   edited_at     DateTime    @updatedAt
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  title       String
+  body        String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  isRead      Boolean  @default(false)
+  created_at  DateTime @default(now())
+  edited_at   DateTime @updatedAt
 }
